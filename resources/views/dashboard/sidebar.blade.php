@@ -30,7 +30,68 @@
 
         </div>
         <div id="adminmenu">
-            <admin-menu :items="{{ menu('admin', '_json') }}"></admin-menu>
+            <ul class="nav navbar-nav">
+                @php
+                    $menuItems = json_decode(menu('admin', '_json'));
+                    $currentUrl = url()->current();
+                    
+                    function isActive($item, $currentUrl) {
+                        if ($item->href == $currentUrl && $item->href != '') {
+                            return true;
+                        }
+                        if (str_starts_with($currentUrl, rtrim($item->href, '/') . '/')) {
+                            return true;
+                        }
+                        if (($item->href == url('') || $item->href == route('voyager.dashboard')) && !empty($item->children)) {
+                            return false;
+                        }
+                        if ($item->href == route('voyager.dashboard') && $currentUrl != route('voyager.dashboard')) {
+                            return false;
+                        }
+                        if (!empty($item->children)) {
+                            foreach ($item->children as $child) {
+                                if (isActive($child, $currentUrl)) {
+                                    return true;
+                                }
+                            }
+                        }
+                        return false;
+                    }
+                @endphp
+                @foreach($menuItems as $item)
+                    @php
+                        $isItemActive = isActive($item, $currentUrl);
+                    @endphp
+                    <li class="@if(!empty($item->children)) dropdown @endif @if($isItemActive) active @endif">
+                        <a target="{{ $item->target }}" href="{{ !empty($item->children) ? '#'.$item->id.'-dropdown-element' : $item->href }}" 
+                           style="{{ !empty($item->color) && $item->color != '#000000' ? 'color:'.$item->color : '' }}"
+                           @if(!empty($item->children)) data-toggle="collapse" aria-expanded="{{ $isItemActive ? 'true' : 'false' }}" @endif>
+                            <span class="icon {{ $item->icon_class }}"></span>
+                            <span class="title">{{ $item->title }}</span>
+                        </a>
+                        @if(!empty($item->children))
+                            <div id="{{ $item->id }}-dropdown-element" class="panel-collapse collapse {{ $isItemActive ? 'in' : '' }}">
+                                <div class="panel-body">
+                                    <ul class="nav navbar-nav">
+                                        @foreach($item->children as $child)
+                                            @php
+                                                $isChildActive = isActive($child, $currentUrl);
+                                            @endphp
+                                            <li class="{{ $isChildActive ? 'active' : '' }}">
+                                                <a target="{{ $child->target }}" href="{{ $child->href }}"
+                                                   style="{{ !empty($child->color) && $child->color != '#000000' ? 'color:'.$child->color : '' }}">
+                                                    <span class="icon {{ $child->icon_class }}"></span>
+                                                    <span class="title">{{ $child->title }}</span>
+                                                </a>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            </div>
+                        @endif
+                    </li>
+                @endforeach
+            </ul>
         </div>
     </nav>
 </div>
